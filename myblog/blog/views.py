@@ -4,6 +4,14 @@ from .models import Post
 from .form import CommentsForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+from django.contrib.auth.models import User, Group
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
+from .models import Post
+from django.shortcuts import redirect
+from django.views import View
+from django.shortcuts import render
+
+
 class PostListView(View):
     #Вывод записей
     paginate_by = 2
@@ -41,6 +49,42 @@ class AddComments(View):
             form.post_id = pk
             form.save()
         return redirect(f'/{pk}')
+
+def register(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+
+        # Validate form data
+        if not username or not email or not password:
+            return render(request, 'register.html', {'error': 'Please fill in all fields'})
+
+        # Ensure password is properly hashed
+        user = User.objects.create_user(username=username, email=email)
+        user.set_password(password)
+        user.save()
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            auth_login(request, user)
+            return redirect('/')  # Перенаправление на административную панель
+    return render(request, 'register.html')
+
+
+def login(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        user = authenticate(username=username, password=password)
+        if user is not None:
+            auth_login(request, user)
+            return redirect('/')  # Перенаправление на административную панель
+    return render(request, 'login.html')
+
+
+def logout(request):
+    auth_logout(request)
+    return redirect('/')
 
 
 
